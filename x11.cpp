@@ -11,7 +11,11 @@
 #include <errno.h>
 
 #include <pthread.h> // compile with -pthread
+#ifdef __APPLE__
+#include <util.h>
+#else
 #include <pty.h> // link  with -lutil
+#endif
 
 #include <X11/X.h>
 #include <X11/Xlib.h>
@@ -21,7 +25,7 @@
 
 #include <X11/extensions/Xinerama.h>
 
-// better than Xinerama but incompatible 
+// better than Xinerama but incompatible
 // with _NET_WM_FULLSCREEN_MONITORS
 //#include <X11/extensions/Xrandr.h>
 
@@ -71,7 +75,7 @@ struct A3D_WND
 
 	bool mapped;
 	WndMode wndmode;
-	int wndrect[4]; 
+	int wndrect[4];
 	bool wnddirty;
 
 	PlatformInterface platform_api;
@@ -208,18 +212,18 @@ const char* caps[]=
 	"A3D_RCTRL",
 	"A3D_LALT",
 	"A3D_RALT",
-	"A3D_OEM_COLON",	
-	"A3D_OEM_PLUS",		
-	"A3D_OEM_COMMA",	
-	"A3D_OEM_MINUS",	
-	"A3D_OEM_PERIOD",	
-	"A3D_OEM_SLASH",	
-	"A3D_OEM_TILDE",	
-	"A3D_OEM_OPEN",     
-	"A3D_OEM_CLOSE",    
+	"A3D_OEM_COLON",
+	"A3D_OEM_PLUS",
+	"A3D_OEM_COMMA",
+	"A3D_OEM_MINUS",
+	"A3D_OEM_PERIOD",
+	"A3D_OEM_SLASH",
+	"A3D_OEM_TILDE",
+	"A3D_OEM_OPEN",
+	"A3D_OEM_CLOSE",
 	"A3D_OEM_BACKSLASH",
 	"A3D_OEM_QUOTATION",
-};	
+};
 
 static const unsigned char ki_to_kc[] =
 {
@@ -542,7 +546,7 @@ A3D_WND* a3dOpen(const PlatformInterface* pi, const GraphicsDesc* gd, A3D_WND* s
 
 	PFNGLXCREATECONTEXTATTRIBSARBPROC glXCreateContextAttribsARB = (PFNGLXCREATECONTEXTATTRIBSARBPROC)
 		glXGetProcAddress((const GLubyte*)"glXCreateContextAttribsARB");
-	
+
 	if (!glXCreateContextAttribsARB)
 		return 0;
 
@@ -598,7 +602,7 @@ A3D_WND* a3dOpen(const PlatformInterface* pi, const GraphicsDesc* gd, A3D_WND* s
 		{
 			im_ok = true;
 		}
-	}	
+	}
 
 	// dpy is global
 	if (!dpy)
@@ -676,29 +680,29 @@ A3D_WND* a3dOpen(const PlatformInterface* pi, const GraphicsDesc* gd, A3D_WND* s
 				glXGetFBConfigAttrib( dpy, fbc[i], GLX_X_VISUAL_TYPE, &vis_type);
 
 				int err_smp = samp_buf * samples;
-				int err_rgb = 
+				int err_rgb =
 					abs(rgba_size[0] - color_bits[0]) +
 					abs(rgba_size[1] - color_bits[1]) +
 					abs(rgba_size[2] - color_bits[2]) +
 					abs(rgba_size[3] - color_bits[3]);
-				int err_dps = 
+				int err_dps =
 					abs(depth - gd->depth_bits) +
 					abs(stencil - gd->stencil_bits);
 
-				int err = err_smp + err_rgb + err_dps;					
+				int err = err_smp + err_rgb + err_dps;
 
-				int err_acc = 
+				int err_acc =
 					accum_size[0] +
 					accum_size[1] +
 					accum_size[2] +
-					accum_size[3];	
+					accum_size[3];
 
 				err += aux + err * aux + err_acc;
 
 				err += vis_type != GLX_TRUE_COLOR;
 				err += 2 * (draw_type != GLX_WINDOW_BIT);
 				err += 4 * stereo;
-				
+
 				if ( best_fbc < 0 || err < smallest_err )
 				{
 					best_fbc = i;
@@ -731,16 +735,16 @@ A3D_WND* a3dOpen(const PlatformInterface* pi, const GraphicsDesc* gd, A3D_WND* s
 	XSetWindowAttributes swa;
 
 	swa.colormap = cmap;
-	swa.event_mask = 
+	swa.event_mask =
 		StructureNotifyMask |
-		PropertyChangeMask | 
-		VisibilityChangeMask | 
+		PropertyChangeMask |
+		VisibilityChangeMask |
 		FocusChangeMask |
-		ExposureMask | 
-		PointerMotionMask | 
-		KeyPressMask | 
-		KeyReleaseMask | 
-		ButtonPressMask | 
+		ExposureMask |
+		PointerMotionMask |
+		KeyPressMask |
+		KeyReleaseMask |
+		ButtonPressMask |
 		ButtonReleaseMask |
 		EnterWindowMask |
 		LeaveWindowMask;
@@ -759,7 +763,7 @@ A3D_WND* a3dOpen(const PlatformInterface* pi, const GraphicsDesc* gd, A3D_WND* s
 		wndrect[2] = 800;
 		wndrect[3] = 600;
 	}
-	
+
 	Window win = XCreateWindow(dpy, /*share ? share->win :*/ root, wndrect[0]+wndrect[2]/2 - 400, wndrect[1]+wndrect[3]/2 - 300, 800, 600, 0, vi->depth, InputOutput, vi->visual, CWColormap | CWEventMask, &swa);
 
 	XFreeColormap(dpy, cmap); // swa (including cmap) is no longer used
@@ -771,13 +775,13 @@ A3D_WND* a3dOpen(const PlatformInterface* pi, const GraphicsDesc* gd, A3D_WND* s
 		return 0;
 	}
 
-	XSetWMProtocols(dpy, win, &wm_delete_window, 1);		
+	XSetWMProtocols(dpy, win, &wm_delete_window, 1);
 
 	char app_name[]="asciiid";
 	XStoreName(dpy, win, app_name);
 
-	// surpress 'UNKNOWN' 
-	// name will be taken from 'Name' property set in ~/.local/share/application/*.desktop file 
+	// surpress 'UNKNOWN'
+	// name will be taken from 'Name' property set in ~/.local/share/application/*.desktop file
 	// if there is no such file it will use class name 'A3D'
 	/*
 	[Desktop Entry]
@@ -805,7 +809,7 @@ A3D_WND* a3dOpen(const PlatformInterface* pi, const GraphicsDesc* gd, A3D_WND* s
 
 	#if 0
 		int nelements;
-		GLXFBConfig *fbc = glXChooseFBConfig(dpy, DefaultScreen(dpy), 0, &nelements);	
+		GLXFBConfig *fbc = glXChooseFBConfig(dpy, DefaultScreen(dpy), 0, &nelements);
 		if (!fbc)
 		{
 			XFree(vi);
@@ -854,13 +858,13 @@ A3D_WND* a3dOpen(const PlatformInterface* pi, const GraphicsDesc* gd, A3D_WND* s
 	}
 
 	// try to connect to IM, if anything fails here
-	// we'd simply stick ascii codes 
+	// we'd simply stick ascii codes
 
 	XIC ic = 0;
 	if (im_ok)
 	{
 		im = XOpenIM(dpy, NULL, NULL, NULL);
-		if (im) 
+		if (im)
 		{
 			char *failed_arg = 0;
 			XIMStyles *styles = 0;
@@ -916,7 +920,7 @@ A3D_WND* a3dOpen(const PlatformInterface* pi, const GraphicsDesc* gd, A3D_WND* s
 	// init wnd fields!
 	wnd->platform_api = *pi;
 	wnd->cookie = 0;
-	
+
 	wnd->win = win;
 	wnd->rc = glc;
 	wnd->ic = ic;
@@ -924,10 +928,10 @@ A3D_WND* a3dOpen(const PlatformInterface* pi, const GraphicsDesc* gd, A3D_WND* s
 
 	wnd->mapped = false;
 	wnd->wndmode = gd->wnd_mode == A3D_WND_CURRENT ? A3D_WND_NORMAL : gd->wnd_mode;
-	wnd->wndrect[0] = wndrect[0]; 
-	wnd->wndrect[1] = wndrect[1]; 
-	wnd->wndrect[2] = wndrect[2]; 
-	wnd->wndrect[3] = wndrect[3]; 
+	wnd->wndrect[0] = wndrect[0];
+	wnd->wndrect[1] = wndrect[1];
+	wnd->wndrect[2] = wndrect[2];
+	wnd->wndrect[3] = wndrect[3];
 	wnd->wnddirty = true;
 	wnd->mouse_b = 0;
 	wnd->mouse_x = 0;
@@ -955,7 +959,7 @@ A3D_WND* a3dOpen(const PlatformInterface* pi, const GraphicsDesc* gd, A3D_WND* s
 
 	if (wnd->platform_api.resize)
 		wnd->platform_api.resize(wnd,wnd->gwa_width,wnd->gwa_height);
-	
+
 	return wnd;
 }
 
@@ -1010,7 +1014,7 @@ void a3dLoop()
 
 			if (xev.type == ClientMessage)
 			{
-				if ((Atom)xev.xclient.data.l[0] == wm_delete_window) 
+				if ((Atom)xev.xclient.data.l[0] == wm_delete_window)
 				{
 					if (wnd->platform_api.close)
 						wnd->platform_api.close(wnd);
@@ -1061,7 +1065,7 @@ void a3dLoop()
 				if (wnd->platform_api.keyb_focus)
 					wnd->platform_api.keyb_focus(wnd,true);
 				if (wnd->ic)
-					XSetICFocus(wnd->ic);					
+					XSetICFocus(wnd->ic);
 			}
 			else
 			if (xev.type == FocusOut)
@@ -1069,18 +1073,18 @@ void a3dLoop()
 				if (wnd->platform_api.keyb_focus)
 					wnd->platform_api.keyb_focus(wnd,false);
 				if (wnd->ic)
-					XUnsetICFocus(wnd->ic);					
+					XUnsetICFocus(wnd->ic);
 			}
 			else
-			if (xev.type == Expose) 
+			if (xev.type == Expose)
 			{
 				/*
 				if (wnd->platform_api.render && mapped)
 					wnd->platform_api.render(wnd);
 				*/
 			}
-			else 
-			if(xev.type == EnterNotify) 
+			else
+			if(xev.type == EnterNotify)
 			{
 				int state = 0;
 				state |= xev.xcrossing.state & Button1Mask ? MouseInfo::LEFT : 0;
@@ -1090,8 +1094,8 @@ void a3dLoop()
 				if (wnd->platform_api.mouse)
 					wnd->platform_api.mouse(wnd,xev.xcrossing.x,xev.xcrossing.y,(MouseInfo)(MouseInfo::ENTER | state));
 			}
-			else 
-			if(xev.type == LeaveNotify) 
+			else
+			if(xev.type == LeaveNotify)
 			{
 				int state = 0;
 				state |= xev.xcrossing.state & Button1Mask ? MouseInfo::LEFT : 0;
@@ -1100,14 +1104,14 @@ void a3dLoop()
 
 				if (wnd->platform_api.mouse)
 					wnd->platform_api.mouse(wnd,xev.xcrossing.x,xev.xcrossing.y, (MouseInfo)(MouseInfo::LEAVE | state));
-			}			
-			else 
-			if(xev.type == KeyPress) 
+			}
+			else
+			if(xev.type == KeyPress)
 			{
 				if (wnd->platform_api.keyb_key)
 				{
 					int kc = xev.xkey.keycode;
-					if (kc>=0 && kc<128) 
+					if (kc>=0 && kc<128)
 					{
 						wnd->force_key = kc_to_ki[kc];
 						wnd->platform_api.keyb_key(wnd,(KeyInfo)kc_to_ki[kc],true);
@@ -1188,8 +1192,8 @@ void a3dLoop()
 							wnd->platform_api.keyb_char(wnd,(wchar_t)asciiCode[i]);
 				}
 			}
-			else 
-			if(xev.type == KeyRelease) 
+			else
+			if(xev.type == KeyRelease)
 			{
 				bool physical = DetectableAutoRepeat;
 
@@ -1199,7 +1203,7 @@ void a3dLoop()
 					XPeekEvent(dpy, &nev);
 
 					// autorepeat guessing...
-					if (nev.type != KeyPress || 
+					if (nev.type != KeyPress ||
 						nev.xkey.time != xev.xkey.time ||
 						nev.xkey.keycode != xev.xkey.keycode)
 					{
@@ -1210,10 +1214,10 @@ void a3dLoop()
 				if (physical && wnd->platform_api.keyb_key)
 				{
 					int kc = xev.xkey.keycode;
-					if (kc>=0 && kc<128) 
+					if (kc>=0 && kc<128)
 					{
 						wnd->platform_api.keyb_key(wnd,(KeyInfo)kc_to_ki[kc],false);
-					}			
+					}
 				}
 
 				/*
@@ -1226,7 +1230,7 @@ void a3dLoop()
                 if (count)
                     printf("in release buffer: %.*s\n", count, buf);
 
-                printf("released KEY: %d\n", (int)keysym);				
+                printf("released KEY: %d\n", (int)keysym);
 				*/
 			}
 			else
@@ -1236,32 +1240,32 @@ void a3dLoop()
 				MouseInfo mi = (MouseInfo)0;
 				switch (xev.xbutton.button)
 				{
-					case Button1: 
-						mi = MouseInfo::LEFT_DN; 
+					case Button1:
+						mi = MouseInfo::LEFT_DN;
 						state |= MouseInfo::LEFT;
 						state |= xev.xbutton.state & Button3Mask ? MouseInfo::RIGHT : 0;
 						state |= xev.xbutton.state & Button2Mask ? MouseInfo::MIDDLE : 0;
 						break;
-					case Button3: 
-						mi = MouseInfo::RIGHT_DN; 
+					case Button3:
+						mi = MouseInfo::RIGHT_DN;
 						state |= xev.xbutton.state & Button1Mask ? MouseInfo::LEFT : 0;
 						state |= MouseInfo::RIGHT;
 						state |= xev.xbutton.state & Button2Mask ? MouseInfo::MIDDLE : 0;
 						break;
-					case Button2: 
-						mi = MouseInfo::MIDDLE_DN; 
+					case Button2:
+						mi = MouseInfo::MIDDLE_DN;
 						state |= xev.xbutton.state & Button1Mask ? MouseInfo::LEFT : 0;
 						state |= xev.xbutton.state & Button3Mask ? MouseInfo::RIGHT : 0;
 						state |= MouseInfo::MIDDLE;
 						break;
-					case Button5: 
-						mi = MouseInfo::WHEEL_DN; 
+					case Button5:
+						mi = MouseInfo::WHEEL_DN;
 						state |= xev.xbutton.state & Button1Mask ? MouseInfo::LEFT : 0;
 						state |= xev.xbutton.state & Button3Mask ? MouseInfo::RIGHT : 0;
 						state |= xev.xbutton.state & Button2Mask ? MouseInfo::MIDDLE : 0;
 						break;
-					case Button4: 
-						mi = MouseInfo::WHEEL_UP; 
+					case Button4:
+						mi = MouseInfo::WHEEL_UP;
 						state |= xev.xbutton.state & Button1Mask ? MouseInfo::LEFT : 0;
 						state |= xev.xbutton.state & Button3Mask ? MouseInfo::RIGHT : 0;
 						state |= xev.xbutton.state & Button2Mask ? MouseInfo::MIDDLE : 0;
@@ -1271,7 +1275,7 @@ void a3dLoop()
 				mi = (MouseInfo)(mi |state);
 
 				if (wnd->platform_api.mouse)
-					wnd->platform_api.mouse(wnd,xev.xbutton.x,xev.xbutton.y,mi);				
+					wnd->platform_api.mouse(wnd,xev.xbutton.x,xev.xbutton.y,mi);
 			}
 			else
 			if (xev.type == ButtonRelease)
@@ -1384,7 +1388,7 @@ void a3dClose(A3D_WND* wnd)
 	} push;
 
 
-	if (push.rc == wnd->rc)	
+	if (push.rc == wnd->rc)
 		push.rc = 0;
 	if (push.dr == wnd->win)
 		push.dr = 0;
@@ -1480,9 +1484,9 @@ int a3dGetTitle(A3D_WND* wnd, char* utf8_name, int size)
 	unsigned long nitems, after;
 	char* data = 0;
 
-	if (Success == XGetWindowProperty(dpy, wnd->win, wm_name_atom, 0, 65536, false, utf8_string_atom, &type, &format, &nitems, &after, (unsigned char**)&data)) 
+	if (Success == XGetWindowProperty(dpy, wnd->win, wm_name_atom, 0, 65536, false, utf8_string_atom, &type, &format, &nitems, &after, (unsigned char**)&data))
 	{
-		if (data) 
+		if (data)
 		{
 			size_t len = strlen(data);
 			len = len < size-1 ? len : size-1;
@@ -1547,13 +1551,13 @@ WndMode a3dGetRect(A3D_WND* wnd, int* xywh, int* client_wh)
 			{
 				result = XGetWindowProperty(
 					dpy, wnd->win, frame_extends_atom,
-					0, 4, False, AnyPropertyType, 
-					&actual_type, &actual_format, 
+					0, 4, False, AnyPropertyType,
+					&actual_type, &actual_format,
 					&nitems, &bytes_after, &data);
 
-				if (result == Success) 
+				if (result == Success)
 				{
-					if ((nitems == 4) && (bytes_after == 0)) 
+					if ((nitems == 4) && (bytes_after == 0))
 					{
 						extents = (long *)data;
 						lrtb[0] = (int)extents[0];
@@ -1561,13 +1565,13 @@ WndMode a3dGetRect(A3D_WND* wnd, int* xywh, int* client_wh)
 						lrtb[2] = (int)extents[2];
 						lrtb[3] = (int)extents[3];
 					}
-					XFree(data);			
+					XFree(data);
 				}
 			}
 		}
 
 		Window root;
-		
+
 		int x,y;
 		unsigned int w,h,b,d;
 		XGetGeometry(dpy,wnd->win,&root,&x,&y,&w,&h,&b,&d);
@@ -1603,7 +1607,7 @@ bool a3dSetRect(A3D_WND* wnd, const int* xywh, WndMode wnd_mode)
 
 	if (!wnd->mapped)
 	{
-		// emulate success, 
+		// emulate success,
 		// even on unmapped windows
 
 		wnd->wndmode = wnd_mode;
@@ -1617,7 +1621,7 @@ bool a3dSetRect(A3D_WND* wnd, const int* xywh, WndMode wnd_mode)
 			wnd->wndrect[2] = xywh[2];
 			wnd->wndrect[3] = xywh[3];
 		}
-		
+
 		return true;
 	}
 
@@ -1781,13 +1785,13 @@ bool a3dSetRect(A3D_WND* wnd, const int* xywh, WndMode wnd_mode)
 				{
 					result = XGetWindowProperty(
 						dpy, wnd->win, frame_extends_atom,
-						0, 4, False, AnyPropertyType, 
-						&actual_type, &actual_format, 
+						0, 4, False, AnyPropertyType,
+						&actual_type, &actual_format,
 						&nitems, &bytes_after, &data);
 
-					if (result == Success) 
+					if (result == Success)
 					{
-						if ((nitems == 4) && (bytes_after == 0)) 
+						if ((nitems == 4) && (bytes_after == 0))
 						{
 							extents = (long *)data;
 							lrtb[0] = (int)extents[0];
@@ -1795,7 +1799,7 @@ bool a3dSetRect(A3D_WND* wnd, const int* xywh, WndMode wnd_mode)
 							lrtb[2] = (int)extents[2];
 							lrtb[3] = (int)extents[3];
 						}
-						XFree(data);			
+						XFree(data);
 					}
 				}
 
@@ -1864,7 +1868,7 @@ bool a3dGetFocus(A3D_WND* wnd)
 void a3dCharSync(A3D_WND* wnd)
 {
 	if (wnd->ic)
-		Xutf8ResetIC(wnd->ic);					
+		Xutf8ResetIC(wnd->ic);
 }
 
 #include "upng.h"
@@ -1900,7 +1904,7 @@ bool a3dLoadImage(const char* path, void* cookie, void(*cb)(void* cookie, A3D_Im
 	unsigned pal_size = upng_get_pal_size(upng);
 
 	// todo:
-	// add it to queue & call on next XPending's 'else' 
+	// add it to queue & call on next XPending's 'else'
 	cb(cookie, (A3D_ImageFormat)format, width, height, buf, pal_size, pal_buf);
 
 	upng_free(upng);
@@ -1923,7 +1927,7 @@ void _a3dSetIconData(void* cookie, A3D_ImageFormat f, int w, int h, const void* 
 	// convert to 0x[0]AARRGGBB unsigned long!!!
 	Convert_UL_AARRGGBB(buf,f,w,h,data,palsize,palbuf);
 
-    XChangeProperty(dpy, wnd->win, netWmIcon, XA_CARDINAL, 32, PropModeReplace, 
+    XChangeProperty(dpy, wnd->win, netWmIcon, XA_CARDINAL, 32, PropModeReplace,
 					(const unsigned char*)wh_buf, 2 + wh);
 
 	free(wh_buf);
@@ -1945,7 +1949,7 @@ int a3dListDir(const char* dir_path, bool (*cb)(A3D_DirItem item, const char* na
     DIR* d;
     struct dirent* dir;
 
-    d = opendir(dir_path);	
+    d = opendir(dir_path);
 	if (!d)
 		return -1;
 
@@ -1967,7 +1971,7 @@ int a3dListDir(const char* dir_path, bool (*cb)(A3D_DirItem item, const char* na
 			if (dir->d_type == S_IFREG)
 				item = A3D_FILE;
 			else
-				continue;				
+				continue;
 		}
 		else
 		{
@@ -1979,14 +1983,14 @@ int a3dListDir(const char* dir_path, bool (*cb)(A3D_DirItem item, const char* na
 			else
 				continue;
 		}
-		 
+
 		if (cb && !cb(item, dir->d_name,cookie))
 			break;
 		num++;
 	}
 
 	closedir(d);
-	return num;	
+	return num;
 }
 
 bool a3dSetCurDir(const char* dir_path)
@@ -2081,17 +2085,17 @@ A3D_PTY* a3dOpenPty(int w, int h, const char* path, char* const argv[], char* co
 		return 0;
 
 	int pfd[2];
-	if (pipe(pfd) != 0)	
+	if (pipe(pfd) != 0)
 	{
 		free(pty);
 		return 0;
-	}		
+	}
 
     struct winsize ws;
     ws.ws_col = w;
     ws.ws_row = h;
     ws.ws_xpixel=0;
-    ws.ws_ypixel=0;		
+    ws.ws_ypixel=0;
 
 	int master,slave;
 	char name[1024];
@@ -2107,11 +2111,11 @@ A3D_PTY* a3dOpenPty(int w, int h, const char* path, char* const argv[], char* co
 		close(tfd);
 
 		// Redirect stdin/stdout/stderr to the pty
-		if (dup2(slave, 1) == -1) 
+		if (dup2(slave, 1) == -1)
 			exit(-1);
-		if (dup2(slave, 2) == -1) 
+		if (dup2(slave, 2) == -1)
 			exit(-1);
-		if (dup2(slave, 0) == -1) 
+		if (dup2(slave, 0) == -1)
 			exit(-1);
 
 		close(slave);
@@ -2133,7 +2137,7 @@ A3D_PTY* a3dOpenPty(int w, int h, const char* path, char* const argv[], char* co
 	else
 		head_pty = pty;
 	tail_pty = pty;
-	
+
 	pty->fd = master;
 	pty->pd[0] = pfd[0];
 	pty->pd[1] = pfd[1];
@@ -2150,7 +2154,7 @@ A3D_PTY* a3dOpenPty(int w, int h, const char* path, char* const argv[], char* co
 		return 0;
 
 	int pfd[2];
-	if (pipe(pfd) != 0)	
+	if (pipe(pfd) != 0)
 	{
 		free(pty);
 		return 0;
@@ -2203,7 +2207,7 @@ A3D_PTY* a3dOpenPty(int w, int h, const char* path, char* const argv[], char* co
 	else
 		head_pty = pty;
 	tail_pty = pty;
-	
+
 	pty->fd = pty_fd;
 	pty->pd[0] = pfd[0];
 	pty->pd[1] = pfd[1];
